@@ -212,7 +212,7 @@ def call_model(prompt: str, model: str) -> str | None:
             # instead of recursing back into this call.
             env={**os.environ, "MEMEX_IN_DISTILL": "1"},
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):  # fmt: skip
         _log("call_model: claude CLI subprocess raised (OSError/SubprocessError)")
         return None
     try:
