@@ -56,6 +56,7 @@ dev = [
     "ruff>=0.8",
     "mypy>=1.13",
     "types-PyYAML>=6.0",
+    "pytest-cov>=6",
 ]
 
 [build-system]
@@ -79,6 +80,19 @@ select = ["E", "F", "I", "UP", "B", "C4", "S"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["memex"]
+
+[tool.coverage.report]
+# cli.py is thin argparse wiring exercised end-to-end by hand, not unit tests;
+# excluding it keeps the floor meaningful for the modules with real logic.
+omit = ["src/memex/cli.py"]
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+fail_under = 85
 
 [tool.mypy]
 python_version = "3.14"

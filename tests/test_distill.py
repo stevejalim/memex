@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from memex import distill
@@ -137,6 +138,33 @@ def test_call_model_distinguishes_auth_error(tmp_path, monkeypatch) -> None:
     assert distill.call_model("prompt", "model") is None
     logged = target.read_text(encoding="utf-8")
     assert "status=401" in logged and "bad creds" in logged
+
+
+def test_call_model_handles_os_error(monkeypatch) -> None:
+    """An OSError launching the CLI (e.g. binary vanished) is caught, not raised.
+
+    Regression test for a syntax bug (`except OSError, subprocess.SubprocessError:`)
+    that made this exception clause invalid Python 3 and broke every import of this
+    module; nothing previously exercised the branch.
+    """
+    monkeypatch.setattr(distill.shutil, "which", lambda _name: "/usr/bin/claude")
+
+    def _raise(*args: object, **kwargs: object) -> None:
+        raise OSError("no such file or directory")
+
+    monkeypatch.setattr(distill.subprocess, "run", _raise)
+    assert distill.call_model("prompt", "model") is None
+
+
+def test_call_model_handles_subprocess_error(monkeypatch) -> None:
+    """A subprocess.SubprocessError (e.g. a timeout) is caught, not raised."""
+    monkeypatch.setattr(distill.shutil, "which", lambda _name: "/usr/bin/claude")
+
+    def _raise(*args: object, **kwargs: object) -> None:
+        raise subprocess.TimeoutExpired(cmd="claude", timeout=120)
+
+    monkeypatch.setattr(distill.subprocess, "run", _raise)
+    assert distill.call_model("prompt", "model") is None
 
 
 def test_call_model_returns_result_on_success(tmp_path, monkeypatch) -> None:
